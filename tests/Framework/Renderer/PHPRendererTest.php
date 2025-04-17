@@ -25,13 +25,13 @@ class RendererTest extends TestCase {
     }
 
     public function testRenderWithParams() {
-        $content = $this->renderer->render('demoparams', ['nom' => 'Marc']);
-        $this->assertEquals('Salut Marc', $content);
+        $content = $this->renderer->render('demoparams', ['nom' => 'Maëlle']);
+        $this->assertEquals('Salut Maëlle', $content);
     }
 
     public function testGlobalParameters() {
-        $this->renderer->addGlobal('nom', 'Marc');
+        $this->renderer->addGlobal('nom', 'Maëlle');
         $content = $this->renderer->render('demoparams');
-        $this->assertEquals('Salut Marc', $content);
+        $this->assertEquals('Salut Maëlle', $content);
     }
 }
