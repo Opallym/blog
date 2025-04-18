@@ -25,12 +25,12 @@ class AppTest extends TestCase {
         ]);
         $request = new ServerRequest('GET', '/blog');
         $response = $app->run($request);
-        $this->assertStringContainsString('<h1>Bienvenue sur le blog</h1>', (string)$response->getBody());
+        $this->assertContains('<h1>Bienvenue sur le blog</h1>', (string)$response->getBody());
         $this->assertEquals(200, $response->getStatusCode());
 
         $requestSingle = new ServerRequest('GET', '/blog/article-de-test');
         $responseSingle = $app->run($requestSingle);
-        $this->assertStringContainsString('<h1>Bienvenue sur l\'article article-de-test</h1>', (string)$responseSingle->getBody());
+        $this->assertContains('<h1>Bienvenue sur l\'article article-de-test</h1>', (string)$responseSingle->getBody());
     }
 
     public function testThrowExceptionIfNoResponseSent () {
@@ -56,7 +56,7 @@ class AppTest extends TestCase {
         $app = new App();
         $request = new ServerRequest('GET', '/aze');
         $response = $app->run($request);
-        $this->assertStringContainsString('<h1>Erreur 404</h1>', (string)$response->getBody());
+        $this->assertContains('<h1>Erreur 404</h1>', (string)$response->getBody());
         $this->assertEquals(404, $response->getStatusCode());
     }
 

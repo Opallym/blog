@@ -1,9 +1,9 @@
 {
-    "name": "gondr/blog",
-
+    "name": "guillaume/guillaume",
     "authors": [
         {
-            "name": "Maëlle"
+            "name": "Guillaume",
+            "email": "Guillaume@exemple.com"
         }
     ],
     "autoload": {
@@ -17,7 +17,8 @@
         "guzzlehttp/psr7": "*",
         "http-interop/response-sender": "*",
         "zendframework/zend-expressive-fastroute": "*",
-        "twig/twig": "*"
+        "twig/twig": "*",
+        "php-di/php-di": "*"
     },
     "require-dev": {
         "squizlabs/php_codesniffer": "*",

@@ -1,50 +1,46 @@
 <?php
-// On définit l'espace de nom (namespace) de cette classe, pour bien organiser le code
+// Définit l'espace de noms pour cette classe
 namespace App\Blog;
 
-// On importe les classes dont on aura besoin
-use Framework\Renderer\RendererInterface; // Interface pour le moteur de rendu
-use Framework\Router;                     // Classe qui gère les routes
-use Psr\Http\Message\ServerRequestInterface as Request; // Interface standard pour les requêtes HTTP
+// Importe les classes nécessaires
+use App\Blog\Actions\BlogAction;  // Contrôleur qui gère les actions du blog
+use Framework\Module;  // Classe de base pour tous les modules de l'application
+use Framework\Renderer\RendererInterface;  // Interface pour le système de rendu des templates
+use Framework\Router;  // Gestionnaire de routes de l'application
 
-// Déclaration de la classe BlogModule
-class BlogModule
+/**
+* Module principal du blog qui initialise les routes et les vues
+* Cette classe étend la classe Module du framework
+*/
+class BlogModule extends Module
 {
-    // Propriété privée pour stocker le moteur de rendu
-    private $renderer;
+   /**
+    * Constante qui définit le chemin vers le fichier de configuration du module
+    * Ce fichier contient les définitions de dépendances spécifiques au module
+    */
+    const DEFINITIONS = __DIR__ . '/config.php';
 
-    // Le constructeur est appelé automatiquement à la création de l'objet
-    public function __construct(Router $router, RendererInterface $renderer)
+   /**
+    * Constructeur du module qui configure les chemins de vues et les routes
+    * Les dépendances sont automatiquement injectées par le conteneur DI
+    *
+    * @param string $prefix Préfixe URL pour toutes les routes du module (ex: /blog)
+    * @param Router $router Gestionnaire de routes pour enregistrer les routes du module
+    * @param RendererInterface $renderer Moteur de rendu pour enregistrer les chemins de vues
+    */
+    public function __construct(string $prefix, Router $router, RendererInterface $renderer)
     {
-        // On stocke le moteur de rendu dans une propriété pour pouvoir l'utiliser dans d'autres méthodes
-        $this->renderer = $renderer;
-
-        // On ajoute un chemin de vue appelé "blog" qui pointe vers le dossier des vues du blog
-        $this->renderer->addPath('blog', __DIR__ . '/views');
-
-        // On déclare une route GET qui correspond à l'URL /blog
-        // Quand cette URL est appelée, la méthode index() sera exécutée
-        $router->get('/blog', [$this, 'index'], 'blog.index');
-
-        // On déclare une route GET avec un paramètre {slug} (texte autorisé : lettres, chiffres, tirets)
-        // Quand cette URL est appelée, la méthode show() sera exécutée
-        $router->get('/blog/{slug:[a-z\-0-9]+}', [$this, 'show'], 'blog.show');
-    }
-
-    // Méthode qui affiche la liste des articles du blog
-    public function index(Request $request): string
-    {
-        // On utilise le moteur de rendu pour afficher la vue index du blog
-        return $this->renderer->render('@blog/index');
-    }
-
-    // Méthode qui affiche un article en particulier (détail d’un article)
-    public function show(Request $request): string
-    {
-        // On utilise le moteur de rendu pour afficher la vue show
-        // On passe à la vue la valeur du paramètre "slug" récupéré depuis l’URL
-        return $this->renderer->render('@blog/show', [
-            'slug' => $request->getAttribute('slug')
-        ]);
+        // Ajoute un chemin vers les vues du module avec le namespace 'blog'
+        // Cela permet d'utiliser @blog/xxx dans les appels de rendu
+        $renderer->addPath('blog', __DIR__ . '/views');
+       
+        // Enregistre la route pour la page d'index du blog
+        // Ex: /blog -> BlogAction (liste des articles)
+        $router->get($prefix, BlogAction::class, 'blog.index');
+       
+        // Enregistre la route pour afficher un article spécifique
+        // Ex: /blog/mon-article -> BlogAction (affiche l'article "mon-article")
+        // Le pattern [a-z\-0-9]+ restreint les slugs aux lettres minuscules, chiffres et tirets
+        $router->get($prefix . '/{slug:[a-z\-0-9]+}', BlogAction::class, 'blog.show');
     }
 }

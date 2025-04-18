@@ -8,7 +8,7 @@ class RendererTest extends TestCase {
 
     private $renderer;
 
-    public function setUp() :void
+    public function setUp()
     {
         $this->renderer = new Renderer\PHPRenderer(__DIR__ . '/views');
     }
@@ -25,13 +25,16 @@ class RendererTest extends TestCase {
     }
 
     public function testRenderWithParams() {
-        $content = $this->renderer->render('demoparams', ['nom' => 'Maëlle']);
-        $this->assertEquals('Salut Maëlle', $content);
+        $content = $this->renderer->render('demoparams', ['nom' => 'Marc']);
+        $this->assertEquals('Salut Marc', $content);
     }
 
     public function testGlobalParameters() {
-        $this->renderer->addGlobal('nom', 'Maëlle');
+        $this->renderer->addGlobal('nom', 'Marc');
         $content = $this->renderer->render('demoparams');
-        $this->assertEquals('Salut Maëlle', $content);
+        $this->assertEquals('Salut Marc', $content);
     }
+
+
+
 }

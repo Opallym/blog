@@ -1,28 +1,55 @@
 <?php
-
-
-// On inclut automatiquement tous les fichiers nécessaires grâce à Composer (autoload)
+// Charge l'autoloader de Composer qui permet d'utiliser toutes les bibliothèques installées et nos propres classes
+// sans avoir à faire des require/include manuels pour chaque fichier
 require '../vendor/autoload.php';
 
-use Framework\App;
-use App\Blog\BlogModule;
+// Définition de la liste des modules qui constituent notre application
+// Les modules sont des classes qui encapsulent une fonctionnalité spécifique de l'application
+$modules = [
+    \App\Blog\BlogModule::class  // Module de blog qui gère les articles, catégories, etc.
+    // D'autres modules pourraient être ajoutés ici (Auth, Admin, API, etc.)
+];
 
-// On crée un moteur de rendu basé sur Twig, pour afficher les vues HTML
-// dirname(__DIR__) permet de remonter d'un dossier et d'aller dans /views
-$renderer = new \Framework\Renderer\TwigRenderer(dirname(__DIR__) . '/views');
+// Création d'un constructeur de conteneur d'injection de dépendances (DI)
+// Le conteneur DI permet de gérer les dépendances entre les différentes classes de l'application
+// et facilite les tests unitaires et la maintenance du code
+$builder = new \DI\ContainerBuilder();
 
-// On instancie l'application principale en lui passant :
-// - une liste de modules à charger (ici, BlogModule)
-// - un tableau de dépendances (ici, on lui passe le renderer Twig)
-$app = new App([
-    BlogModule::class  // Module de blog
-], [
-    'renderer' => $renderer       // Injection du moteur de rendu dans l'application
-]);
+// Chargement du fichier de configuration principal qui contient les paramètres de base
+// dirname(__DIR__) remonte d'un niveau dans l'arborescence par rapport au script actuel
+$builder->addDefinitions(dirname(__DIR__) . '/config/config.php');
 
-// On récupère la requête HTTP actuelle via Guzzle (bibliothèque PSR-7)
-// fromGlobals() crée un objet ServerRequest à partir des superglobales PHP ($_GET, $_POST, etc.)
+// Parcours de tous les modules déclarés pour charger leurs définitions spécifiques
+// Chaque module peut définir ses propres services et paramètres de configuration
+foreach ($modules as $module) {
+    // Vérifie si le module possède des définitions de dépendances (constante DEFINITIONS)
+    if ($module::DEFINITIONS) {
+        // Ajoute ces définitions au constructeur du conteneur
+        // Ces définitions peuvent être un tableau ou un chemin vers un fichier PHP
+        $builder->addDefinitions($module::DEFINITIONS);
+    }
+}
+
+// Charge un fichier de configuration supplémentaire qui peut surcharger les configurations précédentes
+// Cela permet d'avoir des configurations spécifiques à l'environnement (dev, prod, test)
+$builder->addDefinitions(dirname(__DIR__) . '/config.php');
+
+// Construit effectivement le conteneur avec toutes les définitions chargées
+// À partir de maintenant, le conteneur peut résoudre les dépendances automatiquement
+$container = $builder->build();
+
+// Crée l'instance principale de l'application en lui fournissant:
+// - le conteneur d'injection de dépendances pour résoudre les services
+// - la liste des modules à initialiser et exécuter
+$app = new \Framework\App($container, $modules);
+
+// Exécute l'application avec la requête HTTP actuelle:
+// - ServerRequest::fromGlobals() crée un objet Request à partir des variables globales ($_GET, $_POST, etc.)
+// - app->run() traite cette requête et retourne un objet Response conforme au standard PSR-7
 $response = $app->run(\GuzzleHttp\Psr7\ServerRequest::fromGlobals());
 
-// On envoie la réponse HTTP générée par l'application au navigateur du client
+// Envoie la réponse HTTP au navigateur:
+// - envoie les en-têtes HTTP
+// - envoie le corps de la réponse
+// - termine l'exécution du script
 \Http\Response\send($response);

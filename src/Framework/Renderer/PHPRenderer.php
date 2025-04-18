@@ -1,86 +1,107 @@
 <?php
 
-// On déclare l’espace de nom du moteur de rendu
 namespace Framework\Renderer;
 
-// Déclaration de la classe PHPRenderer qui implémente l’interface RendererInterface
+/**
+ * Moteur de rendu PHP simple
+ * Permet de rendre des templates PHP en utilisant des namespaces pour organiser les vues
+ */
 class PHPRenderer implements RendererInterface
 {
-    // Constante qui définit le namespace par défaut pour les vues
+    /**
+     * Namespace par défaut pour les templates qui n'en ont pas
+     */
     const DEFAULT_NAMESPACE = '__MAIN';
 
-    // Tableau contenant les chemins d’accès pour chaque namespace
+    /**
+     * Tableau associatif qui stocke les chemins vers les dossiers de vues
+     * Format: ['namespace' => 'chemin/vers/dossier']
+     * @var array
+     */
     private $paths = [];
 
     /**
-     * Variables globales disponibles dans toutes les vues (ex: utilisateur connecté, titre du site...)
+     * Variables globalement accessibles pour toutes les vues
+     * Ces variables seront disponibles dans tous les templates
      * @var array
      */
     private $globals = [];
 
-    // Constructeur : on peut définir un chemin par défaut dès la création du moteur
+    /**
+     * Constructeur du moteur de rendu
+     *
+     * @param string|null $defaultPath Chemin par défaut vers le dossier principal des vues
+     */
     public function __construct(?string $defaultPath = null)
     {
+        // Si un chemin par défaut est fourni, on l'ajoute automatiquement
         if (!is_null($defaultPath)) {
-            // Si un chemin est fourni, on l’ajoute au namespace par défaut
             $this->addPath($defaultPath);
         }
     }
 
     /**
-     * Permet d’ajouter un chemin pour charger les vues
-     * @param string $namespace Le nom du namespace ou bien le chemin si $path est null
-     * @param null|string $path Le chemin des vues
+     * Permet d'ajouter un chemin pour charger les vues
+     *
+     * @param string $namespace Le namespace ou le chemin si $path est null
+     * @param string|null $path Le chemin vers le dossier des vues pour ce namespace
      */
     public function addPath(string $namespace, ?string $path = null): void
     {
+        // Si path est null, alors on considère que namespace est en fait le chemin
+        // et on l'associe au namespace par défaut
         if (is_null($path)) {
-            // Si aucun chemin n’est précisé, le namespace devient le chemin par défaut
             $this->paths[self::DEFAULT_NAMESPACE] = $namespace;
         } else {
-            // Sinon on associe le namespace à son chemin
+            // Sinon on associe le namespace au chemin
             $this->paths[$namespace] = $path;
         }
     }
 
     /**
-     * Méthode principale pour afficher une vue
-     * @param string $view Le nom de la vue (ex: '@blog/index' ou 'home')
-     * @param array $params Les variables à passer à la vue
-     * @return string Le contenu HTML rendu
+     * Permet de rendre une vue et retourner son contenu sous forme de chaîne
+     * Le chemin peut être précisé avec des namespaces ajoutés via addPath()
+     * Exemples:
+     *   $this->render('@blog/view');  // Utilise le namespace 'blog'
+     *   $this->render('view');        // Utilise le namespace par défaut
+     *
+     * @param string $view Le nom de la vue à rendre (avec ou sans namespace)
+     * @param array $params Variables à passer à la vue
+     * @return string Le contenu rendu de la vue
      */
     public function render(string $view, array $params = []): string
     {
-        // Si la vue utilise un namespace (ex: @blog/view)
+        // Détermine le chemin complet du fichier de vue
         if ($this->hasNamespace($view)) {
-            // On remplace le namespace par son vrai chemin
+            // Si la vue contient un namespace (@namespace/vue)
             $path = $this->replaceNamespace($view) . '.php';
         } else {
-            // Sinon, on utilise le chemin par défaut
+            // Sinon, utilise le namespace par défaut
             $path = $this->paths[self::DEFAULT_NAMESPACE] . DIRECTORY_SEPARATOR . $view . '.php';
         }
 
-        // On active la mise en mémoire tampon (tout ce qui est affiché est stocké)
+        // Démarre la mise en tampon de la sortie pour capturer le rendu
         ob_start();
-
-        // On peut utiliser $renderer dans la vue si besoin
+        
+        // Rend la variable $renderer accessible dans le template
+        // pour permettre d'appeler render() de manière récursive
         $renderer = $this;
-
-        // On extrait les variables globales (elles deviennent accessibles par leur nom directement dans la vue)
+        
+        // Extrait les variables globales et les paramètres pour les rendre
+        // accessibles directement comme variables dans le template
         extract($this->globals);
-
-        // On extrait aussi les variables spécifiques à cette vue
         extract($params);
-
-        // On inclut le fichier PHP correspondant à la vue
+        
+        // Inclut le fichier de template PHP
         require($path);
-
-        // On récupère tout ce qui a été affiché et on le retourne sous forme de string
+        
+        // Récupère le contenu du tampon et le retourne
         return ob_get_clean();
     }
 
     /**
-     * Ajoute une variable globale accessible dans toutes les vues
+     * Permet d'ajouter des variables globales accessibles à toutes les vues
+     *
      * @param string $key Nom de la variable
      * @param mixed $value Valeur de la variable
      */
@@ -89,22 +110,43 @@ class PHPRenderer implements RendererInterface
         $this->globals[$key] = $value;
     }
 
-    // Vérifie si la vue commence par un '@' (donc si elle a un namespace)
+    /**
+     * Vérifie si la vue spécifiée contient un namespace (commence par @)
+     *
+     * @param string $view Nom de la vue
+     * @return bool True si la vue contient un namespace
+     */
     private function hasNamespace(string $view): bool
     {
         return $view[0] === '@';
     }
 
-    // Récupère le nom du namespace à partir de la vue (ex: @blog/index → blog)
+    /**
+     * Extrait le namespace d'une vue
+     * Exemple: "@blog/article" retourne "blog"
+     *
+     * @param string $view Nom de la vue avec namespace
+     * @return string Le namespace extrait
+     */
     private function getNamespace(string $view): string
     {
+        // Extrait la partie entre @ et /
         return substr($view, 1, strpos($view, '/') - 1);
     }
 
-    // Remplace le namespace par son vrai chemin
+    /**
+     * Remplace le namespace dans la vue par le chemin correspondant
+     * Exemple: "@blog/article" devient "/path/to/blog/views/article"
+     *
+     * @param string $view Nom de la vue avec namespace
+     * @return string Le chemin complet sans l'extension
+     */
     private function replaceNamespace(string $view): string
     {
+        // Récupère le namespace de la vue
         $namespace = $this->getNamespace($view);
+        
+        // Remplace @namespace par le chemin réel associé à ce namespace
         return str_replace('@' . $namespace, $this->paths[$namespace], $view);
     }
 }
