@@ -16,4 +16,7 @@ class Module
      * Par exemple, un tableau de définitions pour ce module pourrait y être stocké dans le futur.
      */
     const DEFINITIONS = null;
+    const MIGRATIONS = null;
+    const SEEDS = null;
+
 }

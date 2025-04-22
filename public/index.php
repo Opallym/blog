@@ -1,55 +1,42 @@
 <?php
-// Charge l'autoloader de Composer qui permet d'utiliser toutes les bibliothèques installées et nos propres classes
-// sans avoir à faire des require/include manuels pour chaque fichier
-require '../vendor/autoload.php';
+// On commence le script PHP
 
-// Définition de la liste des modules qui constituent notre application
-// Les modules sont des classes qui encapsulent une fonctionnalité spécifique de l'application
+// On inclut l'autoloader de Composer pour charger automatiquement toutes les classes
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+// Liste des modules de l'application que l'on souhaite charger
 $modules = [
-    \App\Blog\BlogModule::class  // Module de blog qui gère les articles, catégories, etc.
-    // D'autres modules pourraient être ajoutés ici (Auth, Admin, API, etc.)
+    \App\Blog\BlogModule::class // Ici, on charge uniquement le module "Blog"
 ];
 
-// Création d'un constructeur de conteneur d'injection de dépendances (DI)
-// Le conteneur DI permet de gérer les dépendances entre les différentes classes de l'application
-// et facilite les tests unitaires et la maintenance du code
+// On crée un constructeur de conteneur d'injection de dépendances avec PHP-DI
 $builder = new \DI\ContainerBuilder();
 
-// Chargement du fichier de configuration principal qui contient les paramètres de base
-// dirname(__DIR__) remonte d'un niveau dans l'arborescence par rapport au script actuel
+// On ajoute les définitions de services générales à partir du fichier config/config.php
 $builder->addDefinitions(dirname(__DIR__) . '/config/config.php');
 
-// Parcours de tous les modules déclarés pour charger leurs définitions spécifiques
-// Chaque module peut définir ses propres services et paramètres de configuration
+// Pour chaque module de l'application, on vérifie s’il possède une constante DEFINITIONS
+// Si oui, on ajoute aussi ces définitions au conteneur (permet à chaque module de se configurer lui-même)
 foreach ($modules as $module) {
-    // Vérifie si le module possède des définitions de dépendances (constante DEFINITIONS)
     if ($module::DEFINITIONS) {
-        // Ajoute ces définitions au constructeur du conteneur
-        // Ces définitions peuvent être un tableau ou un chemin vers un fichier PHP
         $builder->addDefinitions($module::DEFINITIONS);
     }
 }
 
-// Charge un fichier de configuration supplémentaire qui peut surcharger les configurations précédentes
-// Cela permet d'avoir des configurations spécifiques à l'environnement (dev, prod, test)
+// On ajoute un autre fichier de configuration général (config.php à la racine)
 $builder->addDefinitions(dirname(__DIR__) . '/config.php');
 
-// Construit effectivement le conteneur avec toutes les définitions chargées
-// À partir de maintenant, le conteneur peut résoudre les dépendances automatiquement
+// On construit le conteneur avec toutes les définitions collectées
 $container = $builder->build();
 
-// Crée l'instance principale de l'application en lui fournissant:
-// - le conteneur d'injection de dépendances pour résoudre les services
-// - la liste des modules à initialiser et exécuter
+// On instancie l'application principale en lui passant le conteneur et la liste des modules
 $app = new \Framework\App($container, $modules);
 
-// Exécute l'application avec la requête HTTP actuelle:
-// - ServerRequest::fromGlobals() crée un objet Request à partir des variables globales ($_GET, $_POST, etc.)
-// - app->run() traite cette requête et retourne un objet Response conforme au standard PSR-7
-$response = $app->run(\GuzzleHttp\Psr7\ServerRequest::fromGlobals());
+// On vérifie si le script est lancé depuis le navigateur (et non en ligne de commande CLI)
+if (php_sapi_name() !== "cli") {
+    // On récupère la requête HTTP depuis les variables globales ($_GET, $_POST, etc.)
+    $response = $app->run(\GuzzleHttp\Psr7\ServerRequest::fromGlobals());
 
-// Envoie la réponse HTTP au navigateur:
-// - envoie les en-têtes HTTP
-// - envoie le corps de la réponse
-// - termine l'exécution du script
-\Http\Response\send($response);
+    // On envoie la réponse HTTP au navigateur (HTML, JSON, etc.)
+    \Http\Response\send($response);
+}

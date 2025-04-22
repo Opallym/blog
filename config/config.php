@@ -1,28 +1,28 @@
 <?php
+// On commence le fichier PHP
 
-// Importe les interfaces et classes nécessaires pour le système de rendu des vues
-use Framework\Renderer\RendererInterface;  // Interface commune pour tous les moteurs de rendu
-use Framework\Renderer\TwigRendererFactory; // Usine qui crée l'instance du moteur Twig
-use Framework\Router\RouterTwigExtension;  // Extension qui permet d'utiliser le router dans les templates Twig
+// On importe les classes dont on a besoin depuis le framework
+use Framework\Renderer\RendererInterface; // Interface pour gérer l'affichage des vues (HTML)
+use Framework\Renderer\TwigRendererFactory; // Fabrique qui crée un moteur de rendu Twig
+use Framework\Router\RouterTwigExtension; // Extension pour utiliser le routeur dans les templates Twig
 
-// Retourne un tableau de configuration pour le conteneur d'injection de dépendances (DI)
+// On retourne un tableau de configuration utilisé par le conteneur de dépendances
 return [
-    // Définit le chemin absolu vers le dossier contenant les templates/vues
-    // dirname(__DIR__) remonte d'un niveau par rapport au fichier actuel
-    'views.path' => dirname(__DIR__) . '/views',
-    
-    // Liste des extensions à charger pour le moteur de template Twig
-    // Ces extensions ajoutent des fonctionnalités supplémentaires aux templates
+
+    // Informations pour se connecter à la base de données
+    'database.host' => 'localhost',          // Adresse du serveur de base de données (ici sur l’ordinateur local)
+    'database.username' => 'root',           // Nom d’utilisateur pour se connecter à la base de données
+    'database.password' => '',           // Mot de passe de la base de données
+    'database.name' => 'blog',       // Nom de la base de données qu’on va utiliser
+
+    // Chemin vers les fichiers de vues (templates HTML)
+    'views.path' => dirname(__DIR__) . '/views', // On prend le dossier parent (..) et on ajoute /views
+
+    // Liste des extensions utilisées par le moteur de template Twig
     'twig.extensions' => [
-      \DI\get(RouterTwigExtension::class)  // Récupère l'extension qui permet de générer des URLs dans les templates
+        \DI\get(RouterTwigExtension::class) // On demande au conteneur de fournir l’extension du routeur
     ],
-    
-    // Enregistre le service Router dans le conteneur d'injection de dépendances
-    // \DI\object() crée une nouvelle instance de la classe Router
-    \Framework\Router::class => \DI\autowire(),
-    
-    // Associe l'interface RendererInterface à l'implémentation TwigRenderer
-    // \DI\factory() utilise une factory pour créer l'instance avec la configuration appropriée
-    // Cela permet de changer facilement le moteur de rendu sans modifier le reste du code
+
+    // Configuration du moteur de rendu : on demande au conteneur de créer un moteur Twig via une fabrique
     RendererInterface::class => \DI\factory(TwigRendererFactory::class)
-]; 
+];

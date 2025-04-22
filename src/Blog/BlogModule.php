@@ -19,6 +19,8 @@ class BlogModule extends Module
     * Ce fichier contient les définitions de dépendances spécifiques au module
     */
     const DEFINITIONS = __DIR__ . '/config.php';
+    const MIGRATIONS = __DIR__ . '/db/migrations';
+    const SEEDS = __DIR__ . '/db/seeds';
 
    /**
     * Constructeur du module qui configure les chemins de vues et les routes
